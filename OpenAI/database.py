@@ -26,7 +26,8 @@ class SQLiteDB:
                 CREATE TABLE user_tracking (
                   user_id INT PRIMARY KEY,
                   Quota VARCHAR(40) NOT NULL DEFAULT FREE,
-                  count INT DEFAULT 10
+                  count INT DEFAULT 10,
+                  email varchar(50)
                   );"""
                 cursor.execute(query)
                 c.commit()
@@ -56,13 +57,13 @@ class SQLiteDB:
         except Exception as e:
             print(e)
 
-    def add_user(self, user_id):
+    def add_user(self, user_id, email):
         try:
             with sqlite3.connect("db.sqlite3") as c:
                 # Getting the uploaded file
                 cursor = c.cursor()
                 query = f"""
-                INSERT INTO user_tracking (user_id) VALUES('{user_id}');"""
+                INSERT INTO user_tracking (user_id, email) VALUES('{user_id}','{email}');"""
                 cursor.execute(query)
                 c.commit()
         except Exception as e:
@@ -94,6 +95,31 @@ class SQLiteDB:
                 return res
         except Exception as e:
             print(e)
+
+    def update_user(self, user_id, plan, count):
+        with sqlite3.connect("db.sqlite3") as c:
+            # Getting the uploaded file
+            cursor = c.cursor()
+            query = f"""UPDATE user_tracking SET count = count - 1,Quota='{plan}',count='{count}' where user_id='{user_id}'"""
+            cursor.execute(query)
+            res = cursor.fetchone()
+            c.commit()
+            return res
+
+    def get_users(self):
+        try:
+            with sqlite3.connect("db.sqlite3") as c:
+                # Getting the uploaded file
+                cursor = c.cursor()
+                query = f"""SELECT user_id from user_tracking """
+                cursor.execute(query)
+                res = cursor.fetchall()
+                res = [i[0] for i in res]
+                c.commit()
+                return res
+        except Exception as e:
+            print(e)
+
 
 
 if __name__ == "__main__":

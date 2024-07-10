@@ -23,7 +23,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-os9gcd(=lv^zj)(_ahix5y6c@k@81z((z8!s53l_v66sm(t9^+'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ["*"]
 
@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders'
 ]
 
 MIDDLEWARE = [
@@ -124,3 +125,6 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ORIGIN_ALLOW_ALL = True
+
+RAZOR_KEY_ID = "rzp_live_HzbVOP6dDm9EHU"
+RAZOR_KEY_SECRET = "HwjNrgLbxZQm2QRYNgqRf2M9"
