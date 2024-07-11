@@ -33,7 +33,7 @@ input_type = InputType("Text")
 output_type = OutputType("Image")
 agent = Agent(expertise, task, input_type, output_type)
 api_key = OPENAI_API_KEY
-jwt_secret = "my_sample_token"
+
 db = SQLiteDB()
 
 @csrf_exempt
