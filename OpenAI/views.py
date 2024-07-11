@@ -20,6 +20,8 @@ from digiotai.digiotai_jazz import Agent, Task, OpenAIModel, SequentialFlow, Inp
 from .database import SQLiteDB
 from .form import CreateUserForm
 
+
+
 razorpay_client = razorpay.Client(auth=(settings.RAZOR_KEY_ID, settings.RAZOR_KEY_SECRET))
 
 load_dotenv()
@@ -389,6 +391,12 @@ def generatetestImage(request):
 
         return HttpResponse(json.dumps({"image": image_url, "status": "Success"}),
                             content_type="application/json")
+
+
+
+
+
+
 
 
 
