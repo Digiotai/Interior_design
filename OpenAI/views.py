@@ -1,3 +1,4 @@
+
 import base64
 import io
 import json
@@ -18,34 +19,26 @@ from django.http import JsonResponse
 from digiotai.digiotai_jazz import Agent, Task, OpenAIModel, SequentialFlow, InputType, OutputType
 from .database import SQLiteDB
 from .form import CreateUserForm
-import base64
-import jwt
 
-
-razorpay_client = razorpay.Client(
-    auth=(settings.RAZOR_KEY_ID, settings.RAZOR_KEY_SECRET))
+razorpay_client = razorpay.Client(auth=(settings.RAZOR_KEY_ID, settings.RAZOR_KEY_SECRET))
 
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 # Configure OpenAI
 client = OpenAI(api_key=OPENAI_API_KEY)
-expertise = "Interior Desinger"
+expertise = "Interior Designer"
 task = Task("Image Generation")
 input_type = InputType("Text")
 output_type = OutputType("Image")
 agent = Agent(expertise, task, input_type, output_type)
 api_key = OPENAI_API_KEY
-jwt_secret = "my_sampe_token"
+jwt_secret = "my_sample_token"
 db = SQLiteDB()
-# db.table_creation()
-user_name = None
-
 
 @csrf_exempt
 def testing(request):
     return HttpResponse("Application is up")
-
 
 def get_csv_metadata(df):
     metadata = {
@@ -56,41 +49,28 @@ def get_csv_metadata(df):
     }
     return metadata
 
-
 @csrf_exempt
 def loginpage(request):
-    """ if user submits the credentials  then it check if they are valid or not
-                    if it is valid then it redirects to user home page """
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
         user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)
-            token = jwt.encode(payload={
-                "sub":'log',
-                "usenamr": username,
-                "nickname":'test'
-            },
-            key=jwt_secret)
-            return HttpResponse(token)
+            user_details = db.get_user_data(username)
+            return HttpResponse(json.dumps({"status": "Success", "user_details": user_details}), content_type="application/json")
         else:
-            print('User Name or Password is incorrect')
             return HttpResponse('User Name or Password is incorrect')
-    context = {}
     return HttpResponse("Login failed")
 
-
 @csrf_exempt
-# logout method
 def logoutpage(request):
     try:
         logout(request)
-        request.session.clear()   # deleting the session of user
-        return redirect('demo:login')  # redirecting to login page
+        request.session.clear()
+        return redirect('demo:login')
     except Exception as e:
-        return e  # redirect('demo:')  # redirecting to login page
-
+        return HttpResponse(str(e))
 
 @csrf_exempt
 def register(request):
@@ -102,22 +82,13 @@ def register(request):
                 user = form.cleaned_data.get('username')
                 email = form.cleaned_data.get('email')
                 db.add_user(user, email)
-                token = jwt.encode(payload={
-                    "sub": 'log',
-                    "usenamr": user,
-                    "nickname": 'test'
-                },
-                    key=jwt_secret)
-                return HttpResponse(token)
-
+                user_details = db.get_user_data(user)
+                return HttpResponse(json.dumps({"status": "Success", "user_details": user_details}), content_type="application/json")
             else:
-                print(form.errors)
                 return HttpResponse(str(form.errors))
         except Exception as e:
-            print(e)
-
-        return HttpResponse("Registration Failed1")
-
+            return HttpResponse(str(e))
+        return HttpResponse("Registration Failed")
 
 @csrf_exempt
 def googlelogin(request):
@@ -125,26 +96,18 @@ def googlelogin(request):
     password = username + "@" + request.POST.get("id")
     email = request.POST.get("email")
     users = db.get_users()
-    token = jwt.encode(payload={
-        "sub": 'log',
-        "usename": username,
-        "nickname": 'test'
-    },
-        key=jwt_secret)
     if username in users:
-        return HttpResponse(token)
+        user_details = db.get_user_data(username)
+        return HttpResponse(json.dumps({"status": "Success", "user_details": user_details}), content_type="application/json")
     else:
-        form = CreateUserForm({'username': username,'email': email, 'password1': password, 'password2': password})
+        form = CreateUserForm({'username': username, 'email': email, 'password1': password, 'password2': password})
         if form.is_valid():
             form.save()
-            user = form.cleaned_data.get('username')
-            email = form.cleaned_data.get('email')
-            db.add_user(user, email)
-            return HttpResponse(token)
+            db.add_user(username, email)
+            user_details = db.get_user_data(username)
+            return HttpResponse(json.dumps({"status": "Success", "user_details": user_details}), content_type="application/json")
         else:
-            print(form.errors)
             return HttpResponse(str(form.errors))
-
 
 @csrf_exempt
 def upload_data(request):
@@ -157,12 +120,10 @@ def upload_data(request):
             csv_data = io.StringIO(content)
             df = pd.read_csv(csv_data)
             df.to_csv('data.csv', index=False)
-            result = genAIPrompt3(user_name = jwt.decode(request.headers['token'],key=jwt_secret,algorithms=["HS256",])["usename"])
-            return HttpResponse(json.dumps(result),
-                                content_type="application/json")
-    else:
-        return HttpResponse("Failure")
-
+            username = request.POST.get("username")
+            result = genAIPrompt3(username)
+            return HttpResponse(json.dumps(result), content_type="application/json")
+    return HttpResponse("Failure")
 
 @csrf_exempt
 def genAIPrompt(request):
@@ -182,21 +143,18 @@ def genAIPrompt(request):
             try:
                 exec(code)
                 with open("graph.png", 'rb') as image_file:
-                    return HttpResponse(json.dumps({"graph": base64.b64encode(image_file.read()).decode('utf-8')}),
-                                        content_type="application/json")
+                    return HttpResponse(json.dumps({"graph": base64.b64encode(image_file.read()).decode('utf-8')}), content_type="application/json")
             except Exception as e:
                 prompt_eng = f"There has occurred an error while executing the code, please take a look at the error and strictly only reply with the full python code do not apologize or anything just give the code {str(e)}"
                 code = generate_code(prompt_eng)
                 try:
                     exec(code)
                     with open("graph.png", 'rb') as image_file:
-                        return HttpResponse(json.dumps({"graph": base64.b64encode(image_file.read()).decode('utf-8')}),
-                                            content_type="application/json")
+                        return HttpResponse(json.dumps({"graph": base64.b64encode(image_file.read()).decode('utf-8')}), content_type="application/json")
                 except Exception as e:
                     return HttpResponse("Failed to generate the chart. Please try again")
         else:
             return HttpResponse(code)
-
 
 @csrf_exempt
 def genAIPrompt2(request):
@@ -208,23 +166,20 @@ def genAIPrompt2(request):
         selected_room_type = request.POST["selected_room_type"]
         number_of_room_designs = request.POST["number_of_room_designs"]
         additional_instructions = request.POST["additional_instructions"]
-        user_name = request.POST["user_name"] #jwt.decode(request.headers['token'],key=jwt_secret,algorithms=["HS256",])["usename"]
+        user_name = request.POST["user_name"]
         stat, count, quota = checkQuota(user_name)
         if stat:
-            prompt = f"Generate a Realistic looking Interior design witht he following instructions style: {selected_style}, Room Color: {selected_room_color},Room type: {selected_room_type},Number of designs:{number_of_room_designs} ,Instructions: {additional_instructions}"
+            prompt = f"Generate a Realistic looking Interior design with the following instructions style: {selected_style}, Room Color: {selected_room_color}, Room type: {selected_room_type}, Number of designs: {number_of_room_designs}, Instructions: {additional_instructions}"
             image_url = sequential_flow.execute(prompt)
             print(image_url)
             if quota == "FREE":
                 db.update_count(user_name)
                 count -= 1
-            return HttpResponse(json.dumps({"image": image_url, "status": "Success", "count": count}),
-                                content_type="application/json")
+            user_details = db.get_user_data(user_name)
+            return HttpResponse(json.dumps({"image": image_url, "status": "Success", "count": count, "user_details": user_details}), content_type="application/json")
         else:
-            return HttpResponse(json.dumps({"image": "NA", "status": "Quota limit exceeded", "count": count}),
-                                content_type="application/json")
-
-
-
+            user_details = db.get_user_data(user_name)
+            return HttpResponse(json.dumps({"image": "NA", "status": "Quota limit exceeded", "count": count, "user_details": user_details}), content_type="application/json")
 
 @csrf_exempt
 def generate_code(prompt_eng):
@@ -236,11 +191,8 @@ def generate_code(prompt_eng):
         ]
     )
     all_text = ""
-    # Display generated content dynamically
     for choice in response.choices:
-        print(f"Debug - choice structure: {choice}")  # Debugging line
         message = choice.message
-        print(f"Debug - message structure: {message}")  # Debugging line
         chunk_message = message.content if message else ''
         all_text += chunk_message
 
@@ -249,30 +201,22 @@ def generate_code(prompt_eng):
     code = all_text[code_start:code_end]
     return code
 
-
 @csrf_exempt
-def genAIPrompt3(user):
+def genAIPrompt3(username):
     df = pd.read_csv("data.csv")
-    prompt_eng = (
-        f"You are analytics_bot. Analyse the data: {df} and give description of the columns"
-    )
-    if checkQuota(user):
+    prompt_eng = f"You are analytics_bot. Analyse the data: {df} and give description of the columns"
+    if checkQuota(username):
         code = generate_code(prompt_eng)
-        prompt_eng1 = (
-            f"Generate 10 questions for the data: {df}"
-        )
-
+        prompt_eng1 = f"Generate 10 questions for the data: {df}"
         prompt_eng_2 = f"Generate 10 simple possible plotting questions for the data: {df}"
 
         code1 = generate_code(prompt_eng1)
-
         code2 = generate_code(prompt_eng_2)
-        db.update_count(user)
-        return {"status": "Success", "col_desc": code, "sample data": df.head(10).to_json(), "text_questions": code1,
-                "chart_questions": code2}
+        db.update_count(username)
+        return {"status": "Success", "col_desc": code, "sample data": df.head(10).to_json(), "text_questions": code1, "chart_questions": code2}
     else:
         return {"status": 'Quota limit exceeded'}
-
+    
 
 def checkQuota(user):
     user_details = db.get_user_data(user)
@@ -445,3 +389,6 @@ def generatetestImage(request):
 
         return HttpResponse(json.dumps({"image": image_url, "status": "Success"}),
                             content_type="application/json")
+
+
+
