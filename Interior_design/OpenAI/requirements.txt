@@ -1,0 +1,7 @@
+Django
+pandas
+razorpay
+requests
+python-dotenv
+openai
+pillow
