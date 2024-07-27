@@ -75,16 +75,6 @@ def loginpage(request):
     return HttpResponse("Login failed")
 
 
-
-# Forgot password missing
-
-
-
-
-
-
-
-
 #Logout Page(8)
 @csrf_exempt
 def logoutpage(request):
