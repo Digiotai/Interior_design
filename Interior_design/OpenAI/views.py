@@ -189,8 +189,8 @@ def genAIPrompt2(request):
         user_name = request.POST["user_name"]
         stat, count, quota = checkQuota(user_name)
         if stat:
-            prompt = f"Generate a Realistic looking Interior design with the following instructions style: {selected_style}, Room Color: {selected_room_color}, Room type: {selected_room_type}, Number of designs: {number_of_room_designs}, Instructions: {additional_instructions}"
-            image_url = sequential_flow.execute(prompt)
+            prompt = f"You are expert in generating the Realistic Interior Designs.Generate a Realistic looking Interior design with the following instructions style: {selected_style}, Room Color: {selected_room_color}, Room type: {selected_room_type}, Number of designs: {number_of_room_designs}, Instructions: {additional_instructions}.It is crucial that each of the specified elements is given equal importance. The generated design(s) must precisely reflect the combination of these user-defined requirements. The output should be tailored exactly to the specifications provided, without deviation. Please ensure that the design is a faithful representation of the user's instructions.."
+         
             print(image_url)
             if quota == "FREE":
                 db.update_count(user_name)
